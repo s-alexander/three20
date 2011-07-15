@@ -31,7 +31,22 @@
 #import "Three20Core/TTDebug.h"
 #import "Three20Core/TTDebugFlags.h"
 
+#import <AssetsLibrary/AssetsLibrary.h>
+#import <AssetsLibrary/ALAsset.h>
+
 static const NSInteger kLoadMaxRetries = 2;
+
+@interface FakeNSHTTPURLResponse : NSHTTPURLResponse
+@end
+
+@implementation FakeNSHTTPURLResponse
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+- (NSInteger)statusCode {
+  return 200;
+}
+
+@end
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -133,10 +148,76 @@ static const NSInteger kLoadMaxRetries = 2;
   [_requests removeObject:request];
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+-(void) loadFromAssetThumbnail:(NSURL *) URL {
+  TTNetworkRequestStarted();
+  ALAssetsLibrary* library = [[[ALAssetsLibrary alloc] init] autorelease];
+  NSURL * origUrl = [NSURL URLWithString:[[URL absoluteString] stringByReplacingOccurrencesOfString:@"assets-thumbnail" withString:@"assets-library"]];
+  [library assetForURL:origUrl resultBlock: ^(ALAsset *myasset)
+   {
+     CGImageRef thumbnail = [myasset thumbnail];
+     UIImage * image = [UIImage imageWithCGImage:thumbnail];
+     NSData * data = UIImageJPEGRepresentation(image, 1);
+     NSHTTPURLResponse * response = [[[FakeNSHTTPURLResponse alloc]initWithURL:0 MIMEType:0 expectedContentLength:[data length] textEncodingName:0] autorelease];
+     [self connection:nil didReceiveResponse:response];
+     [self connection:nil didReceiveData:data];
+     [self connectionDidFinishLoading:nil];
+
+   }
+          failureBlock: ^(NSError *err)
+   {
+     NSLog(@"can't get asset %@: %@", URL, err);
+     TTNetworkRequestStopped();
+     
+     TT_RELEASE_SAFELY(_responseData);
+     TT_RELEASE_SAFELY(_connection);
+     
+     [_queue loader:self didFailLoadWithError:err];
+   }];
+  
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+-(void) loadFromAssets:(NSURL *) URL {
+  TTNetworkRequestStarted();
+  ALAssetsLibrary* library = [[[ALAssetsLibrary alloc] init] autorelease];
+  [library assetForURL:URL resultBlock: ^(ALAsset *myasset)
+   {
+     ALAssetRepresentation *rep = [myasset defaultRepresentation];
+     Byte *buf = (Byte*)malloc([rep size]);
+     NSError *err = nil;
+     NSUInteger bytes = [rep getBytes:buf fromOffset:0LL length:[rep size] error:&err];
+     if (err || bytes == 0) { ;; }
+     NSHTTPURLResponse * response = [[[FakeNSHTTPURLResponse alloc]initWithURL:0 MIMEType:0 expectedContentLength:[rep size] textEncodingName:0] autorelease];
+     [self connection:nil didReceiveResponse:response];
+     [self connection:nil didReceiveData:[NSData dataWithBytesNoCopy:buf length:[rep size] freeWhenDone:YES]];
+     [self connectionDidFinishLoading:nil];
+   }
+    failureBlock: ^(NSError *err)
+   {
+      NSLog(@"can't get asset %@: %@", URL, err);
+     TTNetworkRequestStopped();
+     
+     TT_RELEASE_SAFELY(_responseData);
+     TT_RELEASE_SAFELY(_connection);
+     
+     [_queue loader:self didFailLoadWithError:err];
+   }];
+  
+  
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 - (void)load:(NSURL*)URL {
-  if (nil == _connection) {
+  NSString * scheme = [URL scheme];
+  NSLog(@"SCHEME: %@", scheme);
+  if ([scheme isEqualToString:@"assets-library"]) {
+    [self loadFromAssets:URL];
+  }
+  else if ([scheme isEqualToString:@"assets-thumbnail"]) {
+    [self loadFromAssetThumbnail:URL];
+  }
+  else if (nil == _connection) {
     [self connectToURL:URL];
   }
 }

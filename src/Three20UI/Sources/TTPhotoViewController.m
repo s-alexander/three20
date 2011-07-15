@@ -66,7 +66,7 @@ static const NSInteger kActivityLabelTag          = 96;
 @synthesize defaultImage      = _defaultImage;
 @synthesize captionStyle      = _captionStyle;
 @synthesize photoSource       = _photoSource;
-
+@synthesize customRightNavigationButton = _customRightNavigationButton;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
@@ -133,6 +133,7 @@ static const NSInteger kActivityLabelTag          = 96;
   TT_RELEASE_SAFELY(_statusText);
   TT_RELEASE_SAFELY(_captionStyle);
   TT_RELEASE_SAFELY(_defaultImage);
+  TT_RELEASE_SAFELY(_customRightNavigationButton);
 
   [super dealloc];
 }
@@ -208,7 +209,7 @@ static const NSInteger kActivityLabelTag          = 96;
                   _centerPhotoIndex+1, _photoSource.numberOfPhotos];
   }
 
-  if (![self.ttPreviousViewController isKindOfClass:[TTThumbsViewController class]]) {
+  if (![self.ttPreviousViewController isKindOfClass:[TTThumbsViewController class]] && nil == [self customRightNavigationButton]) {
     if (_photoSource.numberOfPhotos > 1) {
       self.navigationItem.rightBarButtonItem =
       [[[UIBarButtonItem alloc] initWithTitle:TTLocalizedString(@"See All",
@@ -219,11 +220,11 @@ static const NSInteger kActivityLabelTag          = 96;
        autorelease];
 
     } else {
-      self.navigationItem.rightBarButtonItem = nil;
+      self.navigationItem.rightBarButtonItem = [self customRightNavigationButton];
     }
 
   } else {
-    self.navigationItem.rightBarButtonItem = nil;
+    self.navigationItem.rightBarButtonItem = [self customRightNavigationButton];
   }
 
   UIBarButtonItem* playButton = [_toolbar itemWithTag:1];

@@ -55,6 +55,8 @@
   TTThumbsViewController* _thumbsController;
 
   id<TTPhotoSource> _photoSource;
+
+  UIBarButtonItem * _customRightNavigationButton;
 }
 
 /**
@@ -86,6 +88,11 @@
  * The style to use for the caption label.
  */
 @property (nonatomic, retain) TTStyle* captionStyle;
+
+/**
+ *  Custom right navigation bar item
+ */
+@property (nonatomic, retain) UIBarButtonItem * customRightNavigationButton;
 
 - (id)initWithPhoto:(id<TTPhoto>)photo;
 - (id)initWithPhotoSource:(id<TTPhotoSource>)photoSource;

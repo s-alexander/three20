@@ -31,6 +31,10 @@ BOOL TTIsDocumentsURL(NSString* URL) {
   return [URL hasPrefix:@"documents://"];
 }
 
+BOOL TTIsAssetsURL(NSString * URL) {
+  return [URL hasPrefix:@"assets-library://"];
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void TTSetDefaultBundle(NSBundle* bundle) {
